@@ -126,6 +126,7 @@ class Bomb(pg.sprite.Sprite):
         self.rect.centerx = emy.rect.centerx
         self.rect.centery = emy.rect.centery+emy.rect.height//2
         self.speed = 6
+        self.state = "active"
 
     def update(self):
         """
@@ -241,6 +242,71 @@ class Score:
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+class EMP:
+    """
+    機体を無力化
+    enemyクラスからintervalを呼び出し、無限(inf)にする
+    爆弾を無力化
+    透明な黄色を表示
+    0.05秒で更新する
+    """
+    def __init__(self,  enemies: pg.sprite.Group, bombs: pg.sprite.Group, screen: pg.surface):
+        for enemy in enemies:
+            enemy.interval = math.inf
+            enemy.image = pg.transform.laplacian(enemy.image)
+            enemy.image.set_colorkey((0, 0, 0))
+        for bomb in bombs:
+            bomb.speed /=2
+            bomb.state = "inactive"
+        img = pg.Surface((WIDTH, HEIGHT))
+        pg.draw.rect(img, (255, 255, 0),(0, 0, WIDTH, HEIGHT))
+        img.set_alpha(100)
+        screen.blit(img, [0, 0])
+        pg.display.update()
+        time.sleep(0.05)
+
+
+        
+class Shield(pg.sprite.Sprite):
+    def __init__(self, bird, life):
+        super().__init__()
+        bx,by = bird.rect.center
+        bw = bird.image.get_width()
+        bh = bird.image.get_height()
+
+        self.life = life
+
+        self.shild = pg.Surface((20, bh*2))
+        self.image = pg.draw.rect(self.shild, (0, 0, 255), (0, 0, 20, bh*2))
+        self.shild.set_colorkey((0, 0, 0))
+
+        vx, vy = bird.dire
+        self.imageagree = math.degrees(math.atan2(-vy, vx))
+        self.image = pg.transform.rotate(self.shild, self.imageagree)
+        
+        self.rect = self.image.get_rect()
+        if bird.dire == (1, 0):
+            self.rect.center = bx+bw, by
+        elif bird.dire == (1, -1):
+            self.rect.center = bx+bw//2, by-bw//2
+        elif bird.dire == (0, -1):
+            self.rect.center = bx, by-bw
+        elif bird.dire == (-1, -1):
+            self.rect.center = bx-bw//2, by-bw//2
+        elif bird.dire == (-1, 0):
+            self.rect.center = bx-bw, by
+        elif bird.dire == (-1, 1):
+            self.rect.center = bx-bw//2, by+bw//2
+        elif bird.dire == (0, 1):
+            self.rect.center = bx, by+bw
+        elif bird.dire == (1, 1):
+            self.rect.center = bx+bw//2, by+bw//2
+    
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+ 
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
@@ -253,6 +319,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    shields = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -263,7 +330,15 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_e: #EMPの実行
+                if score.value >= 20:
+                    score.value -= 20
+                    EMP(emys, bombs, screen)
+            if event.type == pg.KEYDOWN and event.key == pg.K_w and shields.sprites() == [] and score.value >= 50:
+                shields.add(Shield(bird, 400))
+                score.value -= 50
         screen.blit(bg_img, [0, 0])
+
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
@@ -282,6 +357,9 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
+        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():
+            exps.add(Explosion(bomb, 50))
+
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             bird.change_img(8, screen) # こうかとん悲しみエフェクト
             score.update(screen)
@@ -299,6 +377,8 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        shields.draw(screen)
+        shields.update()
         pg.display.update()
         tmr += 1
         clock.tick(50)
