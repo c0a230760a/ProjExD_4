@@ -126,6 +126,7 @@ class Bomb(pg.sprite.Sprite):
         self.rect.centerx = emy.rect.centerx
         self.rect.centery = emy.rect.centery+emy.rect.height//2
         self.speed = 6
+        self.state = "active"
 
     def update(self):
         """
@@ -241,7 +242,31 @@ class Score:
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+class EMP:
+    """
+    機体を無力化
+    enemyクラスからintervalを呼び出し、無限(inf)にする
+    爆弾を無力化
+    透明な黄色を表示
+    0.05秒で更新する
+    """
+    def __init__(self,  enemies: pg.sprite.Group, bombs: pg.sprite.Group, screen: pg.surface):
+        for enemy in enemies:
+            enemy.interval = math.inf
+            enemy.image = pg.transform.laplacian(enemy.image)
+            enemy.image.set_colorkey((0, 0, 0))
+        for bomb in bombs:
+            bomb.speed /=2
+            bomb.state = "inactive"
+        img = pg.Surface((WIDTH, HEIGHT))
+        pg.draw.rect(img, (255, 255, 0),(0, 0, WIDTH, HEIGHT))
+        img.set_alpha(100)
+        screen.blit(img, [0, 0])
+        pg.display.update()
+        time.sleep(0.05)
 
+
+        
 class Shield(pg.sprite.Sprite):
     def __init__(self, bird, life):
         super().__init__()
@@ -305,6 +330,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_e: #EMPの実行
+                if score.value >= 20:
+                    score.value -= 20
+                    EMP(emys, bombs, screen)
             if event.type == pg.KEYDOWN and event.key == pg.K_w and shields.sprites() == [] and score.value >= 50:
                 shields.add(Shield(bird, 400))
                 score.value -= 50
