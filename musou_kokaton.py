@@ -6,6 +6,7 @@ import time
 import pygame as pg
 
 
+
 WIDTH = 1100  # ゲームウィンドウの幅
 HEIGHT = 650  # ゲームウィンドウの高さ
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -71,7 +72,12 @@ class Bird(pg.sprite.Sprite):
         self.image = self.imgs[self.dire]
         self.rect = self.image.get_rect()
         self.rect.center = xy
-        self.speed = 10
+        self.speed = 10 
+  
+    
+            
+        
+
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -89,6 +95,10 @@ class Bird(pg.sprite.Sprite):
         引数2 screen：画面Surface
         """
         sum_mv = [0, 0]
+        if  key_lst[pg.K_LSHIFT]:
+                self.speed = 20
+        else:
+                self.speed = 10
         for k, mv in __class__.delta.items():
             if key_lst[k]:
                 sum_mv[0] += mv[0]
@@ -220,7 +230,7 @@ class Enemy(pg.sprite.Sprite):
         if self.rect.centery > self.bound:
             self.vy = 0
             self.state = "stop"
-        self.rect.move_ip(vx, vy)
+        self.rect.move_ip(self.vx, self.vy)
 
 
 class Score:
@@ -302,6 +312,7 @@ def main():
         pg.display.update()
         tmr += 1
         clock.tick(50)
+        
 
 
 if __name__ == "__main__":
