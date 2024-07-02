@@ -243,6 +243,13 @@ class Score:
         screen.blit(self.image, self.rect)
 
 class EMP:
+    """
+    機体を無力化
+    enemyクラスからintervalを呼び出し、無限(inf)にする
+    爆弾を無力化
+    透明な黄色を表示
+    0.05秒で更新する
+    """
     def __init__(self,  enemies: pg.sprite.Group, bombs: pg.sprite.Group, screen: pg.surface):
         for enemy in enemies:
             enemy.interval = math.inf
@@ -281,7 +288,7 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
-            if event.type == pg.KEYDOWN and event.key == pg.K_e:
+            if event.type == pg.KEYDOWN and event.key == pg.K_e: #EMPの実行
                 if score.value >= 20:
                     score.value -= 20
                     EMP(emys, bombs, screen)
