@@ -223,6 +223,24 @@ class Enemy(pg.sprite.Sprite):
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
 
+class Gravity(pg.sprite.Sprite):
+    """
+    追加機能2
+    """
+    def __init__(self, life: int):
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.Surface((WIDTH, HEIGHT))
+        pg.draw.rect(self.image, (0, 0, 0), (0, 0, WIDTH, HEIGHT))
+        self.image.set_alpha(200)
+        self.rect = self.image.get_rect()
+        self.rect.center = WIDTH/2, HEIGHT/2
+        self.life = life
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
 
 class Score:
     """
@@ -320,6 +338,7 @@ def main():
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
     shields = pg.sprite.Group()
+    gvys = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -337,6 +356,9 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_w and shields.sprites() == [] and score.value >= 50:
                 shields.add(Shield(bird, 400))
                 score.value -= 50
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value > 200:
+                gvys.add(Gravity(400))
+                score.value -= 200
         screen.blit(bg_img, [0, 0])
 
 
@@ -360,12 +382,21 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():
             exps.add(Explosion(bomb, 50))
 
+        for emy in pg.sprite.groupcollide(emys, gvys, True, False).keys():
+            gvys.add(Explosion(emy, 100))  # 爆発エフェクト
+            score.value += 10
+
+        for bomb in pg.sprite.groupcollide(bombs, gvys, True, False).keys():
+            gvys.add(Explosion(bomb, 50))
+            score.value += 1
+
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             bird.change_img(8, screen) # こうかとん悲しみエフェクト
             score.update(screen)
             pg.display.update()
             time.sleep(2)
             return
+        
 
         bird.update(key_lst, screen)
         beams.update()
@@ -377,8 +408,8 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
-        shields.draw(screen)
-        shields.update()
+        gvys.update()
+        gvys.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
