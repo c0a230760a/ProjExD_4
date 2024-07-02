@@ -48,6 +48,9 @@ class Bird(pg.sprite.Sprite):
         pg.K_RIGHT: (+1, 0),
     }
 
+    state = "nomal"
+    hyper_life = 500
+
     def __init__(self, num: int, xy: tuple[int, int]):
         """
         こうかとん画像Surfaceを生成する
@@ -72,6 +75,8 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        self.state = "normal"
+        self.hyper_life = 500
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -99,6 +104,18 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
+
+        if self.state == "hyper":
+            # self.image = pg.transform.laplacian(self.imgs[self.dire])
+            self.image = pg.transform.laplacian(self.image)
+            if self.hyper_life < 0:
+                self.state = "normal"
+                # print(f"state:{self.state}")
+            self.hyper_life -= 1
+        else:
+            self.image = self.imgs[self.dire]
+            # print(self.hyper_life)
+        
         screen.blit(self.image, self.rect)
 
 
@@ -359,6 +376,12 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value > 200:
                 gvys.add(Gravity(400))
                 score.value -= 200
+
+        # 課題4main
+        if event.type == pg.KEYDOWN and key_lst[pg.K_RSHIFT] == True and score.value >= 100:
+            bird.state = "hyper"
+            bird.hyper_life = 500
+            score.value -= 100
         screen.blit(bg_img, [0, 0])
 
 
@@ -378,7 +401,7 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
-
+        
         for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():
             exps.add(Explosion(bomb, 50))
 
@@ -390,12 +413,18 @@ def main():
             gvys.add(Explosion(bomb, 50))
             score.value += 1
 
-        if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
-            bird.change_img(8, screen) # こうかとん悲しみエフェクト
-            score.update(screen)
-            pg.display.update()
-            time.sleep(2)
-            return
+        if bird.state == "hyper":
+            for bomb in pg.sprite.spritecollide(bird, bombs, True):
+                exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                score.value += 1  # 1点アップ
+        
+        else:
+            if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
+                bird.change_img(8, screen) # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
         
 
         bird.update(key_lst, screen)
@@ -410,6 +439,8 @@ def main():
         score.update(screen)
         gvys.update()
         gvys.draw(screen)
+        shields.draw(screen)
+        shields.update()
         pg.display.update()
         tmr += 1
         clock.tick(50)
